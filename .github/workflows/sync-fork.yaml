@@ -17,5 +17,5 @@ jobs:
         with:
           upstream_repo: https://github.com/XTLS/Xray-core
           upstream_branch: main
-          downstream_branch: main 
+          downstream_branch: main
           token: ${{ secrets.GITHUB_TOKEN }}
