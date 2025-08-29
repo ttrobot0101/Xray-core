@@ -48,7 +48,7 @@ func (s *Server) Dispatch(ctx context.Context, dest net.Destination) (*transport
 	_, err := NewServerWorker(ctx, s.dispatcher, &transport.Link{
 		Reader: uplinkReader,
 		Writer: downlinkWriter,
-	})
+	}, false)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (s *Server) DispatchLink(ctx context.Context, dest net.Destination, link *t
 	if dest.Address != muxCoolAddress {
 		return s.dispatcher.DispatchLink(ctx, dest, link)
 	}
-	_, err := NewServerWorker(ctx, s.dispatcher, link)
+	_, err := NewServerWorker(ctx, s.dispatcher, link, true)
 	return err
 }
 
@@ -81,13 +81,17 @@ type ServerWorker struct {
 	sessionManager *SessionManager
 }
 
-func NewServerWorker(ctx context.Context, d routing.Dispatcher, link *transport.Link) (*ServerWorker, error) {
+func NewServerWorker(ctx context.Context, d routing.Dispatcher, link *transport.Link, wait bool) (*ServerWorker, error) {
 	worker := &ServerWorker{
 		dispatcher:     d,
 		link:           link,
 		sessionManager: NewSessionManager(),
 	}
-	go worker.run(ctx)
+	if wait {
+		worker.run(ctx)
+	} else {
+		go worker.run(ctx)
+	}
 	return worker, nil
 }
 
@@ -289,14 +293,29 @@ func (w *ServerWorker) handleFrame(ctx context.Context, reader *buf.BufferedRead
 
 	switch meta.SessionStatus {
 	case SessionStatusKeepAlive:
+
+		println("alive")
+
 		err = w.handleStatusKeepAlive(&meta, reader)
 	case SessionStatusEnd:
+
+		println("end")
+
 		err = w.handleStatusEnd(&meta, reader)
 	case SessionStatusNew:
+
+		println("new")
+
 		err = w.handleStatusNew(ctx, &meta, reader)
 	case SessionStatusKeep:
+
+		println("keep")
+
 		err = w.handleStatusKeep(&meta, reader)
 	default:
+
+		println("unknown")
+
 		status := meta.SessionStatus
 		return errors.New("unknown status: ", status).AtError()
 	}
